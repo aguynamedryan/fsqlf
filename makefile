@@ -6,6 +6,8 @@ CFLAGS+=-pedantic-errors
 
 CXXFLAGS+=-DVERSION=\"$(VERSION)\"
 
+DEFINES=
+
 ifdef WIN
 OS_TARGET=windows
 EXEC_CLI=fsqlf.exe
@@ -26,6 +28,7 @@ CFLAGS+=-m32
 CXX=g++
 CXXFLAGS+= `wx-config --cxxflags`
 LDFLAGS+= `wx-config --libs`
+DEFINES=linux
 endif
 
 LIBNAME=libfsqlf.so
@@ -34,8 +37,10 @@ LIBFLAGS=-shared
 ifeq (Darwin, ${_system_type})
 	LIBNAME=libfsqlf.dylib
 	LIBFLAGS=-dynamiclib
+	DEFINES=
 endif
 
+CFLAGS+= $(DEFINES)
 
 .PHONY: all  clean  zip  test  test-print  test-gold  clean_obj  clean_test  install  uninstall
 
@@ -52,6 +57,8 @@ COBJ += core/cli.o
 COBJ += core/conf_file/conf_file_create.o
 COBJ += core/conf_file/conf_file_read.o
 COBJ += core/debuging.o
+COBJ += core/fmemopen/fmemopen.o
+COBJ += core/fmemopen/open_memstream.o
 COBJ += core/formatter/globals.o
 COBJ += core/formatter/lex.yy.o
 COBJ += core/formatter/print_keywords.o
