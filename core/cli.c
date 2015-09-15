@@ -5,6 +5,7 @@
 #include "conf_file/conf_file_create.h"
 #include "conf_file/conf_file_constants.h"
 #include "kw/kwall_init.h"  // set_case, set_text_original
+#include "kw/kw.h"  // init_all_settings
 #include "formatter/lex.yy.h"
 #include "debuging.h"
 #include "../utils/string/read_int.h"   // read_int
@@ -178,6 +179,21 @@ void debugit(char *arg) {
     else if (strcmp(arg, "match") == 0) debug_level |= DEBUGMATCHES;
     else if (strcmp(arg, "parenthesis") == 0) debug_level |= DEBUGPARCOUNTS;
     else FAIL_WITH_ERROR(1, "Missing or invalid value for option : %s", "debug");
+}
+
+
+void init() {
+    // Initialise with STD I/O (later can be changed by command line options).
+    yyin  = stdin;
+    yyout = stdout;
+
+    init_all_settings(&kw);             // Init default configs.
+    read_default_conf_file(&kw);        // Read configs from file.
+}
+
+
+void run() {
+    while (yylex() != 0) ;
 }
 
 
