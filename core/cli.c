@@ -63,6 +63,124 @@ static int get_int_arg(int i, int argc, char **argv)
 }
 
 
+void set_input(FILE *in) {
+    if (yyin == stdin) {
+        yyin = in;
+    }
+}
+
+
+void set_output(FILE *out) {
+    if (yyout == stdout) {
+        yyout = out;
+    }
+}
+
+
+void set_input_path(char *path) {
+    FILE  *file = fopen(path, "r");
+    if (!(file)) {
+        FAIL_WITH_ERROR(1, "Error opening input file: %s", path);
+    }
+}
+
+
+void set_output_path(char *path) {
+    FILE  *file = fopen(path, "w");
+    if (!(file)) {
+        FAIL_WITH_ERROR(1, "Error opening output file: %s", path);
+    }
+}
+
+
+void read_config_file(char *path) {
+    if (read_conf_file(path, kw) == READ_FAILED) {
+        FAIL_WITH_ERROR(1, "Error reading configuration file: %s", path);
+    }
+}
+
+
+void select_comma_newline(char *arg) {
+    if (strcmp(arg, "after") == 0) {
+        kw("kw_comma")->before.new_line = 0;
+        kw("kw_comma")->after.new_line  = 1;
+    } else if (strcmp(arg, "before") == 0) {
+        kw("kw_comma")->before.new_line = 1;
+        kw("kw_comma")->after.new_line  = 0;
+    } else if (strcmp(arg, "none") == 0) {
+        kw("kw_comma")->before.new_line = 0;
+        kw("kw_comma")->after.new_line  = 0;
+    }
+}
+
+
+void keyword_case(char *arg) {
+    if (strcmp(arg, "none") == 0) {
+        set_case(CASE_none);
+    } else if (strcmp(arg, "upper") == 0) {
+        set_case(CASE_UPPER);
+    } else if (strcmp(arg, "lower") == 0) {
+        set_case(CASE_lower);
+    } else if (strcmp(arg, "initcap") == 0) {
+        set_case(CASE_Initcap);
+    }
+}
+
+
+void keyword_text(char *arg) {
+    if (strcmp(arg, "original") == 0) {
+        set_text_original(1);
+    } else if (strcmp(arg, "default") == 0) {
+        set_text_original(0);
+    }
+}
+
+
+void select_newline_after(int lines) {
+    kw("kw_select")->after.new_line = lines;
+}
+
+
+void newline_or_before(int lines) {
+    kw("kw_or")->before.new_line = lines;
+}
+
+
+void newline_or_after(int lines) {
+    kw("kw_or")->after.new_line = lines;
+}
+
+
+void newline_and_before(int lines) {
+    kw("kw_and")->before.new_line = lines;
+}
+
+
+void newline_and_after(int lines) {
+    kw("kw_and")->after.new_line = lines;
+}
+
+
+void newline_major_sections(int lines) {
+    kw("kw_from")->before.new_line = lines;
+    kw("kw_where")->before.new_line = lines;
+    kw("kw_inner_join")->before.new_line = lines;
+    kw("kw_left_join")->before.new_line  = lines;
+    kw("kw_right_join")->before.new_line = lines;
+    kw("kw_full_join")->before.new_line  = lines;
+    kw("kw_cross_join")->before.new_line = lines;
+}
+
+
+void debugit(char *arg) {
+    if (strcmp(arg, "none") == 0) debug_level |= DEBUGNONE;
+    else if (strcmp(arg, "state") == 0) debug_level |= DEBUGSTATES;
+    else if (strcmp(arg, "match") == 0) debug_level |= DEBUGMATCHES;
+    else if (strcmp(arg, "parenthesis") == 0) debug_level |= DEBUGPARCOUNTS;
+    else FAIL_WITH_ERROR(1, "Missing or invalid value for option : %s", "debug");
+}
+
+
 void read_cli_options(int argc, char **argv,
                         struct kw_conf * (*kw)(const char *), FILE ** fin, FILE ** fout)
 {
@@ -78,88 +196,51 @@ void read_cli_options(int argc, char **argv,
         }
     }
 
-    for (i = 1; i < argc; i++) {
-        if (argv[i][0] != '-') {
-            if ((*fin) == stdin) {
-                //try to openinig INPUT file
-                (*fin) = fopen(argv[1], "r");
-                if (!(*fin)) {
-                    FAIL_WITH_ERROR(1, "Error opening input file: %s", argv[i]);
-                }
-            }
-            else if ((*fout) == stdout) {   //try to openinig OUTPUT file (only if INPUT file is set)
-                (*fout) = fopen(argv[2], "w+");
-                if (!(*fout)) FAIL_WITH_ERROR(1, "Error opening output file: %s", argv[i]);
-            }
-        } else if (ARGV_MATCH(i, "-i")) {
+    i = 1;
+
+    if (argv[i][0] != '-') {
+        set_input_path(argv[i]);
+        i++;
+    }
+
+    if (argv[i][0] != '-') {
+        set_output_path(argv[i]);
+    }
+
+    for (; i < argc; i++) {
+        if (ARGV_MATCH(i, "-i")) {
             if (++i >= argc) FAIL_WITH_ERROR(1, "Missing value for option : %s", argv[i-1]);
-            (*fin) = fopen(argv[i], "r");
-            if (!(*fin)) FAIL_WITH_ERROR(1, "Error opening input file: %s", argv[i]);
+            set_input_path(argv[i]);
         } else if (ARGV_MATCH(i, "-o")) {
             if (++i >= argc) FAIL_WITH_ERROR(1, "Missing value for option : %s", argv[i-1]);
-            (*fout) = fopen(argv[i], "w+");
-            if (!(*fout)) FAIL_WITH_ERROR(1, "Error opening output file: %s", argv[i]);
+            set_output_path(argv[i]);
         } else if (ARGV_MATCH(i, "--config-file")) {
             if (++i >= argc) FAIL_WITH_ERROR(1, "Missing value for option : %s", argv[i-1]);
-            if (read_conf_file(argv[i], kw) == READ_FAILED) {
-                FAIL_WITH_ERROR(1, "Error reading configuration file: %s", argv[i]);
-            }
+            read_config_file(argv[i]);
         } else if (ARGV_MATCH(i, "--select-comma-newline")) {
             if (++i >= argc) FAIL_WITH_ERROR(1, "Missing value for option : %s", argv[i-1]);
-            if (strcmp(argv[i], "after") == 0) {
-                kw("kw_comma")->before.new_line = 0;
-                kw("kw_comma")->after.new_line  = 1;
-            } else if (strcmp(argv[i], "before") == 0) {
-                kw("kw_comma")->before.new_line = 1;
-                kw("kw_comma")->after.new_line  = 0;
-            } else if (strcmp(argv[i], "none") == 0) {
-                kw("kw_comma")->before.new_line = 0;
-                kw("kw_comma")->after.new_line  = 0;
-            }
+            select_comma_newline(argv[i]);
         } else if (ARGV_MATCH(i, "--keyword-case")) {
             if (++i >= argc) FAIL_WITH_ERROR(1, "Missing value for option : %s", argv[i-1]);
-            if (strcmp(argv[i], "none") == 0) {
-                set_case(CASE_none);
-            } else if (strcmp(argv[i], "upper") == 0) {
-                set_case(CASE_UPPER);
-            } else if (strcmp(argv[i], "lower") == 0) {
-                set_case(CASE_lower);
-            } else if (strcmp(argv[i], "initcap") == 0) {
-                set_case(CASE_Initcap);
-            }
+            keyword_case(argv[i]);
         } else if (ARGV_MATCH(i, "--keyword-text")) {
             if (++i >= argc) FAIL_WITH_ERROR(1, "Missing value for option : %s", argv[i-1]);
-            if (strcmp(argv[i], "original") == 0) {
-                set_text_original(1);
-            } else if (strcmp(argv[i], "default") == 0) {
-                set_text_original(0);
-            }
+            keyword_text(argv[i]);
         } else if (ARGV_MATCH(i, "--select-newline-after")) {
-            kw("kw_select")->after.new_line = get_int_arg(++i, argc, argv);
+            select_newline_after(get_int_arg(++i, argc, argv));
         } else if (ARGV_MATCH(i, "--newline-or-before")) {
-            kw("kw_or")->before.new_line = get_int_arg(++i, argc, argv);
+            newline_or_before(get_int_arg(++i, argc, argv));
         } else if (ARGV_MATCH(i, "--newline-or-after")) {
-            kw("kw_or")->after.new_line = get_int_arg(++i, argc, argv);
+            newline_or_after(get_int_arg(++i, argc, argv));
         } else if (ARGV_MATCH(i, "--newline-and-before")) {
-            kw("kw_and")->before.new_line = get_int_arg(++i, argc, argv);
+            newline_and_before(get_int_arg(++i, argc, argv));
         } else if (ARGV_MATCH(i, "--newline-and-after")) {
-            kw("kw_and")->after.new_line = get_int_arg(++i, argc, argv);
+            newline_and_after(get_int_arg(++i, argc, argv));
         } else if (ARGV_MATCH(i, "--newline-major-sections")) {
-            int new_line_count = get_int_arg(++i, argc, argv);
-            kw("kw_from")->before.new_line = new_line_count;
-            kw("kw_where")->before.new_line = new_line_count;
-            kw("kw_inner_join")->before.new_line = new_line_count;
-            kw("kw_left_join")->before.new_line  = new_line_count;
-            kw("kw_right_join")->before.new_line = new_line_count;
-            kw("kw_full_join")->before.new_line  = new_line_count;
-            kw("kw_cross_join")->before.new_line = new_line_count;
+            newline_major_sections(get_int_arg(++i, argc, argv));
         } else if (ARGV_MATCH(i, "--debug")) {
             if (++i >= argc ) FAIL_WITH_ERROR(1, "Missing or invalid value for option : %s", argv[i-1]);
-            if (ARGV_MATCH(i, "none")) debug_level |= DEBUGNONE;
-            else if (ARGV_MATCH(i, "state")) debug_level |= DEBUGSTATES;
-            else if (ARGV_MATCH(i, "match")) debug_level |= DEBUGMATCHES;
-            else if (ARGV_MATCH(i, "parenthesis")) debug_level |= DEBUGPARCOUNTS;
-            else FAIL_WITH_ERROR(1, "Missing or invalid value for option : %s", argv[i-1]);
+            debugit(argv[i]);
         } else if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
             usage_info(argc, argv);
             exit(0);
