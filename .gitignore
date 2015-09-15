@@ -32,3 +32,7 @@ tmp
 tmp/*
 testing/*output_lead.sql
 */*/a.out
+
+# libraries
+libfsqlf.so
+libfsqlf.dylib
