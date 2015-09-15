@@ -65,16 +65,12 @@ static int get_int_arg(int i, int argc, char **argv)
 
 
 void set_input(FILE *in) {
-    if (yyin == stdin) {
-        yyin = in;
-    }
+    yyin = in;
 }
 
 
 void set_output(FILE *out) {
-    if (yyout == stdout) {
-        yyout = out;
-    }
+    yyout = out;
 }
 
 
@@ -192,7 +188,10 @@ void init() {
 }
 
 
-void run() {
+void run(FILE *in, FILE *out) {
+    yyin = in;
+    yyout = out;
+
     while (yylex() != 0) ;
 }
 

@@ -7,7 +7,7 @@ int main(int argc, char **argv)
     init();
     read_cli_options(argc, argv, &kw, &yyin, &yyout);  // Read configs from command line.
 
-    run();
+    run(yyin, yyout);
 
     return 0;
 }
