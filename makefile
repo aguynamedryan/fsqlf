@@ -28,6 +28,13 @@ CXXFLAGS+= `wx-config --cxxflags`
 LDFLAGS+= `wx-config --libs`
 endif
 
+LIBNAME=libfsqlf.so
+LIBFLAGS=-shared
+
+ifeq (Darwin, ${_system_type})
+	LIBNAME=libfsqlf.dylib
+	LIBFLAGS=-dynamiclib
+endif
 
 
 .PHONY: all  clean  zip  test  test-print  test-gold  clean_obj  clean_test  install  uninstall
@@ -41,7 +48,6 @@ all: $(EXEC_CLI)  $(EXEC_GUI)
 #
 # BUILD CLI
 #
-COBJ += core/main.o
 COBJ += core/cli.o
 COBJ += core/conf_file/conf_file_create.o
 COBJ += core/conf_file/conf_file_read.o
@@ -53,16 +59,20 @@ COBJ += core/kw/kw.o
 COBJ += core/kw/kwall_init.o
 COBJ += utils/stack/stack.o
 COBJ += utils/string/read_int.o
+COBJ += core/main.o
 
 $(COBJ): %.o: %.c
 	$(CC) $(CFLAGS)  -c $<  -o $@
 
 core/conf_file/conf_file_create.o: core/conf_file/conf_file_constants.h
 core/conf_file/conf_file_read.o: core/conf_file/conf_file_constants.h utils/string/read_int.h
-core/main.o: core/formatter/lex.yy.h
+core/cli.o: core/formatter/lex.yy.h
 
-$(EXEC_CLI): $(COBJ)
-	$(CC) $(CFLAGS)  $^   -o $@
+$(LIBNAME): $(COBJ)
+	$(CC) $(CFLAGS) $(LIBFLAGS) $^   -o $@
+
+$(EXEC_CLI): $(LIBNAME)
+	$(CC) $(CFLAGS) -L. -lfsqlf -o $@
 	strip $@
 
 core/formatter/lex.yy.h: core/formatter/lex.yy.c
@@ -140,6 +150,7 @@ clean_local:
 	rm -R -f $(EXEC_GUI) $(EXEC_CLI)  core/formatter/lex.yy.c  $(TMP_BAKUPS) \
 		core/formatter/lex.yy.h \
 		$(wildcard $(PROJECTFOLDER)*.zip) tmp gui/license_text.h $(CONF_FILE) \
+		$(LIBNAME) \
 	make clean_obj
 
 clean_win:
@@ -189,6 +200,8 @@ install: $(EXEC_CLI) $(EXEC_GUI) formatting.conf
 	install $(EXEC_CLI) $(EXEC_GUI) $(PREFIX)/bin
 	install -d $(PREFIX)/share/fsqlf
 	install -m 644 formatting.conf $(PREFIX)/share/fsqlf/formatting.conf.example
+	install -d $(PREFIX)/lib
+	install $(LIBNAME) $(PREFIX)/lib
 
 uninstall:
 ifdef EXEC_CLI
@@ -199,6 +212,7 @@ ifdef EXEC_GUI
 endif
 	rm -vf $(PREFIX)/share/fsqlf/formatting.conf.example
 	rm -vfd $(PREFIX)/share/fsqlf
+	rm -vf $(PREFIX)/lib/$(LIBNAME)
 
 endif
 
