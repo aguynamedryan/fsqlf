@@ -7,6 +7,7 @@ CFLAGS+=-pedantic-errors
 CXXFLAGS+=-DVERSION=\"$(VERSION)\"
 
 DEFINES=
+ARCH=
 
 ifdef WIN
 OS_TARGET=windows
@@ -24,7 +25,7 @@ PREFIX=/usr/local
 EXEC_CLI=fsqlf
 EXEC_GUI=wx_fsqlf
 CC=gcc
-CFLAGS+=-m32
+ARCH=-m32
 CXX=g++
 CXXFLAGS+= `wx-config --cxxflags`
 LDFLAGS+= `wx-config --libs`
@@ -38,9 +39,11 @@ ifeq (Darwin, ${_system_type})
 	LIBNAME=libfsqlf.dylib
 	LIBFLAGS=-dynamiclib
 	DEFINES=
+	ARCH=-m64
 endif
 
-CFLAGS+= $(DEFINES)
+CFLAGS+=$(DEFINES)
+CFLAGS+=$(ARCH)
 
 .PHONY: all  clean  zip  test  test-print  test-gold  clean_obj  clean_test  install  uninstall
 
