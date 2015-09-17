@@ -79,6 +79,7 @@ void set_input_path(char *path) {
     if (!(file)) {
         FAIL_WITH_ERROR(1, "Error opening input file: %s", path);
     }
+    set_input(file);
 }
 
 
@@ -87,6 +88,7 @@ void set_output_path(char *path) {
     if (!(file)) {
         FAIL_WITH_ERROR(1, "Error opening output file: %s", path);
     }
+    set_output(file);
 }
 
 
@@ -180,8 +182,8 @@ void debugit(char *arg) {
 
 void init() {
     // Initialise with STD I/O (later can be changed by command line options).
-    yyin  = stdin;
-    yyout = stdout;
+    set_input(stdin);
+    set_output(stdout);
 
     init_all_settings(&kw);             // Init default configs.
     read_default_conf_file(&kw);        // Read configs from file.
@@ -189,8 +191,8 @@ void init() {
 
 
 void run(FILE *in, FILE *out) {
-    yyin = in;
-    yyout = out;
+    set_input(in);
+    set_output(out);
 
     while (yylex() != 0) ;
 }
