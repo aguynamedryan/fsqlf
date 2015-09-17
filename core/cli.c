@@ -6,6 +6,8 @@
 #include "conf_file/conf_file_constants.h"
 #include "kw/kwall_init.h"  // set_case, set_text_original
 #include "kw/kw.h"  // init_all_settings
+#include "fmemopen/fmemopen.h"
+#include "fmemopen/open_memstream.h"
 #include "formatter/lex.yy.h"
 #include "debuging.h"
 #include "../utils/string/read_int.h"   // read_int
@@ -195,6 +197,33 @@ void run(FILE *in, FILE *out) {
     set_output(out);
 
     while (yylex() != 0) ;
+
+    fclose(in);
+    fclose(out);
+}
+
+
+const char *translate_string(char *str) {
+
+    char *out_str;
+    char *in_str = strdup(str);
+    size_t size;
+
+    FILE *out = open_memstream(&out_str, &size);
+    if (out == NULL) {
+        FAIL_WITH_ERROR(1, "Output string is no good: %s", out_str);
+    }
+
+    FILE *in = fmemopen(in_str, strlen(in_str), "r");
+    if (in == NULL) {
+        FAIL_WITH_ERROR(1, "Input string is no good: %s", str);
+    }
+
+    init();
+    run(in, out);
+    free(in_str);
+
+    return out_str;
 }
 
 

@@ -23,6 +23,7 @@ void newline_major_sections(int lines);
 void debugit(char *arg);
 void init();
 void run(FILE *in, FILE *out);
+const char *translate_string(char *str);
 
 void read_cli_options(int argc, char **argv,
     struct kw_conf * (*kw)(const char *), FILE ** fin, FILE ** fout);
