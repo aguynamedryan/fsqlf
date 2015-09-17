@@ -215,13 +215,14 @@ void read_cli_options(int argc, char **argv,
 
     i = 1;
 
-    if (argv[i][0] != '-') {
+    if (i < argc && argv[i][0] != '-') {
         set_input_path(argv[i]);
         i++;
     }
 
-    if (argv[i][0] != '-') {
+    if (i < argc && argv[i][0] != '-') {
         set_output_path(argv[i]);
+        i++;
     }
 
     for (; i < argc; i++) {
